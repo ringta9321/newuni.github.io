@@ -48,10 +48,7 @@ local function trySit(target, seatType)
 end
 
 local function checkFallbackOptions()
-    local animals = Workspace:FindFirstChild("Baseplates")
-        and Workspace.Baseplates:FindFirstChild("Baseplate")
-        and Workspace.Baseplates.Baseplate:FindFirstChild("CenterBaseplate")
-        and Workspace.Baseplates.Baseplate.CenterBaseplate:FindFirstChild("Animals")
+    local animals = Workspace:FindFirstChild("Baseplates") and Workspace.Baseplates:FindFirstChild("Baseplate") and Workspace.Baseplates.Baseplate:FindFirstChild("CenterBaseplate") and Workspace.Baseplates.Baseplate.CenterBaseplate:FindFirstChild("Animals")
 
     if not animals then
         return
@@ -118,5 +115,9 @@ local function tweenBackward()
 end
 
 while not unicornFound or not fallbackUsed do
-    tweenBackward()
+    local success, errorMessage = pcall(tweenBackward)
+    if not success then
+        warn("Error in tweenBackward: "..errorMessage)
+        break
+    end
 end
