@@ -3,20 +3,22 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
-local SPEED = 1250
-local DISTANCE = 75000
 local NO_CLIP = true
 local SCAN_INTERVAL = 0.1
-local HEIGHT_OFFSET = 3
-local MOVEMENT_DIRECTION = -1
+local fallbackUsed = false
+local unicornFound = false
+local closestDistance = math.huge
+
+local x = 57
+local y = 3
+local startZ = 30000
+local endZ = -49032.99
+local stepZ = -1250
+local duration = 0.5
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
-
-local fallbackUsed = false
-local unicornFound = false
-local closestDistance = math.huge
 
 if NO_CLIP then
     RunService.Stepped:Connect(function()
@@ -78,46 +80,46 @@ local function checkFallbackOptions()
     end
 end
 
-local function tweenBackward()
-    local startPos = rootPart.Position
-    local startCFrame = CFrame.new(startPos.X, startPos.Y + HEIGHT_OFFSET, startPos.Z)
-    local endCFrame = CFrame.new(
-        startPos.X, 
-        startPos.Y + HEIGHT_OFFSET, 
-        startPos.Z + (DISTANCE * MOVEMENT_DIRECTION)
-    )
+local function tweenMovement()
+    local currentZ = startZ
+    while currentZ >= endZ do
+        local startCFrame = CFrame.new(x, y, currentZ)
+        local endCFrame = CFrame.new(x, y, currentZ + stepZ)
 
-    local lastScan = 0
-    local heartbeat = RunService.Heartbeat:Connect(function(deltaTime)
-        lastScan = lastScan + deltaTime
-        if lastScan >= SCAN_INTERVAL then
-            lastScan = 0
-            for _, descendant in ipairs(Workspace:GetDescendants()) do
-                if isUnicorn(descendant) then
-                    unicornFound = true
-                    checkFallbackOptions()
-                    heartbeat:Disconnect()
-                    return
+        local lastScan = 0
+        local heartbeat = RunService.Heartbeat:Connect(function(deltaTime)
+            lastScan = lastScan + deltaTime
+            if lastScan >= SCAN_INTERVAL then
+                lastScan = 0
+                for _, descendant in ipairs(Workspace:GetDescendants()) do
+                    if isUnicorn(descendant) then
+                        unicornFound = true
+                        checkFallbackOptions()
+                        heartbeat:Disconnect()
+                        return
+                    end
                 end
             end
-        end
-    end)
+        end)
 
-    local tweenInfo = TweenInfo.new(
-        DISTANCE / SPEED,
-        Enum.EasingStyle.Linear
-    )
-    local tween = TweenService:Create(rootPart, tweenInfo, {CFrame = endCFrame})
-    tween:Play()
-    tween.Completed:Wait()
+        local tweenInfo = TweenInfo.new(
+            duration,
+            Enum.EasingStyle.Linear
+        )
+        local tween = TweenService:Create(rootPart, tweenInfo, {CFrame = endCFrame})
+        tween:Play()
+        tween.Completed:Wait()
 
-    heartbeat:Disconnect()
+        heartbeat:Disconnect()
+        currentZ = currentZ + stepZ
+        if unicornFound then break end
+    end
 end
 
 while not unicornFound or not fallbackUsed do
-    local success, errorMessage = pcall(tweenBackward)
+    local success, errorMessage = pcall(tweenMovement)
     if not success then
-        warn("Error in tweenBackward: "..errorMessage)
+        warn("Error in tweenMovement: "..errorMessage)
         break
     end
 end
