@@ -1,4 +1,3 @@
-
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -12,14 +11,14 @@ local runtime = workspace:WaitForChild("RuntimeItems")
 -- Flags & storage
 local isRunningPhase = false
 local foundUnicorns = {}
-local unicornPositions = {} -- Отдельный хранилище для позиций единорогов
+local unicornPositions = {}
 
 -- Teleport delay in seconds
 local teleportDelay = 5
 
 -- Full list of path points (Y = 20)
 local pathPoints = {
-        Vector3.new(13.66, 20, 29620.67),
+    Vector3.new(13.66, 20, 29620.67),
     Vector3.new(-15.98, 20, 28227.97),
     Vector3.new(-63.54, 20, 26911.59),
     Vector3.new(-15.98, 20, 28227.97),
@@ -82,21 +81,18 @@ local pathPoints = {
 }
 
 -- Scan helper
--- В самом верху модуля, вместо RuntimeItems:
 local animalsFolder = workspace:WaitForChild("RuntimeItems")
 
 local function scanForUnicorns()
     for _, m in ipairs(animalsFolder:GetChildren()) do
         if m:IsA("Model") and m.Name == "Unicorn" then
-            -- на всякий случай найдём корневую часть модели
             local root = m:FindFirstChild("HumanoidRootPart") or m.PrimaryPart
             if not root then
-                warn("Unicorn без HumanoidRootPart:", m)
+                warn("Unicorn missing HumanoidRootPart:", m)
                 continue
             end
 
             local p = root.Position
-            -- проверка дубликатов
             local exists = false
             for _, v in ipairs(unicornPositions) do
                 if (v - p).Magnitude < 5 then
@@ -108,7 +104,6 @@ local function scanForUnicorns()
             if not exists then
                 table.insert(unicornPositions, p)
                 table.insert(foundUnicorns, p)
-                updateUnicornsList()
             end
         end
     end
@@ -118,10 +113,10 @@ end
 spawn(function()
     while true do
         if isRunningPhase then
-            foundUnicorns = {} -- Очищаем только временный список
+            foundUnicorns = {}
             local scanConn = RunService.Heartbeat:Connect(scanForUnicorns)
             
-            for i, pt in ipairs(pathPoints) do
+            for _, pt in ipairs(pathPoints) do
                 if not isRunningPhase then break end
                 hrp.CFrame = CFrame.new(pt)
                 task.wait(teleportDelay)
@@ -134,84 +129,10 @@ spawn(function()
     end
 end)
 
--- GUI Elements
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "UnicornFarmGUI"
+-- Include Loadstring for Castle Teleport
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ringtaa/castletpfast.github.io/refs/heads/main/FASTCASTLE.lua"))()
+task.wait(3)
+player:LoadCharacter()
 
-local toggleButton = Instance.new("TextButton", gui)
-toggleButton.Size = UDim2.new(0, 20, 0, 20)
-toggleButton.Position = UDim2.new(0, 0, 0, 0)
-toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-toggleButton.Text = ""
-
-local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0.2, 0, 0.5, 0)
-mainFrame.Position = UDim2.new(0, 20, 0.25, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-mainFrame.Visible = false
-
--- Unicorns List
-local scrollFrame = Instance.new("ScrollingFrame", mainFrame)
-scrollFrame.Size = UDim2.new(1, -10, 0.7, -60)
-scrollFrame.Position = UDim2.new(0, 5, 0, 50)
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-local listLayout = Instance.new("UIListLayout", scrollFrame)
-listLayout.Padding = UDim.new(0, 5)
-
-local function updateUnicornsList()
-    for _, child in ipairs(scrollFrame:GetChildren()) do
-        if child:IsA("Frame") then
-            child:Destroy()
-        end
-    end
-    
-    -- Используем основное хранилище для отображения
-    for idx, pos in ipairs(unicornPositions) do
-        local frame = Instance.new("Frame", scrollFrame)
-        frame.Size = UDim2.new(1, 0, 0, 30)
-        frame.BackgroundTransparency = 1
-        
-        local posText = Instance.new("TextLabel", frame)
-        posText.Size = UDim2.new(0.7, 0, 1, 0)
-        posText.Text = string.format("Единорог %d: X:%.1f, Y:%.1f, Z:%.1f", idx, pos.X, pos.Y, pos.Z)
-        posText.TextColor3 = Color3.new(1,1,1)
-        
-        local tpBtn = Instance.new("TextButton", frame)
-        tpBtn.Size = UDim2.new(0.25, 0, 1, 0)
-        tpBtn.Position = UDim2.new(0.75, 0, 0, 0)
-        tpBtn.Text = "🦄"
-        tpBtn.MouseButton1Click:Connect(function()
-            hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
-        end)
-    end
-end
-
--- Control Buttons
-local startBtn = Instance.new("TextButton", mainFrame)
-startBtn.Size = UDim2.new(1, -10, 0, 40)
-startBtn.Position = UDim2.new(0, 5, 0, 5)
-startBtn.Text = "Начать поиск"
-startBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-startBtn.MouseButton1Click:Connect(function()
-    isRunningPhase = true
-end)
-
-local castleBtn = Instance.new("TextButton", mainFrame)
-castleBtn.Size = UDim2.new(1, -10, 0, 40)
-castleBtn.Position = UDim2.new(0, 5, 1, -45)
-castleBtn.Text = "TP в замок"
-castleBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
-castleBtn.MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/ringtaa/castletpfast.github.io/refs/heads/main/FASTCASTLE.lua"))()
-    task.wait(3)
-    player:LoadCharacter()
-end)
-
-toggleButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-    if mainFrame.Visible then
-        updateUnicornsList()
-    end
-end)
+-- Start scanning automatically
+isRunningPhase = true
